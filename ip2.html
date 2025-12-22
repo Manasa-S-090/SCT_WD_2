@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interactive Stopwatch</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;display:flex;align-items:center;justify-content:center;margin:0;background:linear-gradient(180deg,#071023 0%, #081226 100%);color:#e6eef6}
+    .wrap{width:min(880px,96vw);padding:28px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);box-shadow:0 8px 30px rgba(2,6,23,0.7);backdrop-filter: blur(6px)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    .panel{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    @media (max-width:820px){.panel{grid-template-columns:1fr;}}
+
+    .card{background:var(--card);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+
+    .display{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));}
+    .time{font-variant-numeric:tabular-nums;font-size:56px;letter-spacing:0.6px}
+    .tiny{font-size:14px;color:var(--muted);margin-top:6px}
+
+    .controls{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+    button{appearance:none;border:0;outline:0;cursor:pointer;padding:10px 14px;border-radius:10px;font-weight:600}
+    .btn-primary{background:linear-gradient(180deg,var(--accent),#0891b2);color:#04202a}
+    .btn-ghost{background:var(--glass);color:#d6eef6;border:1px solid rgba(255,255,255,0.03)}
+    .btn-danger{background:linear-gradient(180deg,#ff7a7a,#ff5252);color:#1b041b}
+    button:active{transform:translateY(1px)}
+
+    .right-panel{display:flex;flex-direction:column;gap:12px}
+    .laps{max-height:360px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    .lap{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+    .lap strong{font-variant-numeric:tabular-nums}
+    .meta{color:var(--muted);font-size:12px}
+
+    .tool-row{display:flex;gap:8px;align-items:center}
+    .small{font-size:13px;padding:8px 10px}
+    .empty{color:var(--muted);text-align:center;padding:18px}
+
+    footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;color:var(--muted)}
+
+    /* focus styles */
+    button:focus{box-shadow:0 0 0 4px rgba(6,182,212,0.12)}
+
+    /* subtle animations */
+    .pulse{animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Stopwatch application">
+    <header>
+      <div>
+        <h1>Interactive Stopwatch</h1>
+        <div class="subtitle">Start, Pause, Reset, and record lap times. Keyboard: Space = Start/Pause, L = Lap, R = Reset</div>
+      </div>
+      <div class="meta">Accurate timing using performance.now()</div>
+    </header>
+
+    <main class="panel">
+      <section class="card display" aria-live="polite">
+        <div class="time" id="display">00:00:00.000</div>
+        <div class="tiny" id="status">Paused</div>
+
+        <div class="controls" style="margin-top:22px">
+          <button id="startPause" class="btn-primary" aria-pressed="false">Start</button>
+          <button id="lapBtn" class="btn-ghost" disabled>Lap</button>
+          <button id="resetBtn" class="btn-danger small" disabled>Reset</button>
+        </div>
+
+        <div class="tool-row" style="margin-top:14px">
+          <button id="exportBtn" class="btn-ghost small" title="Export laps to CSV" disabled>Export CSV</button>
+          <button id="clearStorage" class="btn-ghost small">Clear Saved</button>
+        </div>
+
+      </section>
+
+      <aside class="right-panel">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong>Laps</strong>
+            <span class="meta" id="lapCount">0</span>
+          </div>
+          <div class="laps" id="lapsContainer">
+            <div class="empty" id="noLaps">No laps yet — press <kbd> L </kbd> or tap Lap.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong>Controls & Tips</strong>
+            <span class="meta">Keyboard friendly</span>
+          </div>
+          <ul style="margin:0;padding-left:18px;color:var(--muted)">
+            <li>Space: Start / Pause</li>
+            <li>L: Record Lap</li>
+            <li>R: Reset</li>
+            <li>Export laps to CSV for analysis</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div>Precision: <strong id="precision">ms</strong></div>
+      <div style="color:var(--muted)">Made with ❤️ — responsive & accessible</div>
+    </footer>
+  </div>
+
+  <script>
+    // Accurate stopwatch using performance.now() and requestAnimationFrame
+    const display = document.getElementById('display');
+    const status = document.getElementById('status');
+    const startPauseBtn = document.getElementById('startPause');
+    const lapBtn = document.getElementById('lapBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const lapsContainer = document.getElementById('lapsContainer');
+    const lapCount = document.getElementById('lapCount');
+    const noLaps = document.getElementById('noLaps');
+
+    let running = false;
+    let startTime = 0; // perf.now() at start
+    let elapsed = 0; // milliseconds
+    let rafId = null;
+    let laps = []; // {t: cumulative ms}
+
+    // restore from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('stopwatch_state'));
+      if (saved) {
+        elapsed = saved.elapsed || 0;
+        laps = saved.laps || [];
+      }
+    } catch(e){/* ignore */}
+
+    function formatTime(ms) {
+      const total = Math.floor(ms);
+      const milliseconds = total % 1000;
+      const s = Math.floor(total / 1000) % 60;
+      const m = Math.floor(total / (1000*60)) % 60;
+      const h = Math.floor(total / (1000*60*60));
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+    }
+
+    function updateDisplay(now) {
+      const current = running ? (elapsed + (performance.now() - startTime)) : elapsed;
+      display.textContent = formatTime(current);
+    }
+
+    function step() {
+      updateDisplay();
+      rafId = requestAnimationFrame(step);
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      startTime = performance.now();
+      startPauseBtn.textContent = 'Pause';
+      startPauseBtn.setAttribute('aria-pressed','true');
+      status.textContent = 'Running';
+      lapBtn.disabled = false;
+      resetBtn.disabled = false;
+      exportBtn.disabled = laps.length === 0;
+      rafId = requestAnimationFrame(step);
+    }
+
+    function pause() {
+      if (!running) return;
+      running = false;
+      elapsed += performance.now() - startTime;
+      cancelAnimationFrame(rafId);
+      startPauseBtn.textContent = 'Start';
+      startPauseBtn.setAttribute('aria-pressed','false');
+      status.textContent = 'Paused';
+      lapBtn.disabled = false; // allow lap on pause
+      resetBtn.disabled = false;
+    }
+
+    function reset() {
+      running = false;
+      startTime = 0;
+      elapsed = 0;
+      laps = [];
+      cancelAnimationFrame(rafId);
+      updateDisplay();
+      renderLaps();
+      startPauseBtn.textContent = 'Start';
+      startPauseBtn.setAttribute('aria-pressed','false');
+      status.textContent = 'Paused';
+      lapBtn.disabled = true;
+      resetBtn.disabled = true;
+      exportBtn.disabled = true;
+      saveState();
+    }
+
+    function recordLap() {
+      const current = running ? (elapsed + (performance.now() - startTime)) : elapsed;
+      // push cumulative time
+      laps.unshift({t: current, at: new Date().toISOString()}); // unshift to show newest first
+      renderLaps();
+      exportBtn.disabled = false;
+      saveState();
+    }
+
+    function renderLaps(){
+      lapCount.textContent = laps.length;
+      lapsContainer.innerHTML = '';
+      if(laps.length === 0){
+        lapsContainer.appendChild(noLaps);
+        return;
+      }
+
+      // we'll list newest first (laps[0] is most recent)
+      let prev = 0; // previous cumulative (for oldest-first diff calculation we invert later)
+      // but easier: compute for the displayed order (newest first), lapDelta = current - next
+      for(let i=0;i<laps.length;i++){
+        const cum = laps[i].t;
+        const next = (i+1 < laps.length) ? laps[i+1].t : 0;
+        const lapDuration = cum - next;
+        const node = document.createElement('div');
+        node.className = 'lap';
+        node.innerHTML = `<div>
+            <div style="font-size:13px">Lap <strong>#${laps.length - i}</strong></div>
+            <div class="meta">${new Date(laps[i].at).toLocaleString()}</div>
+          </div>
+          <div style="text-align:right">
+            <div><strong>${formatTime(lapDuration)}</strong></div>
+            <div class="meta">Total ${formatTime(cum)}</div>
+          </div>`;
+        lapsContainer.appendChild(node);
+      }
+    }
+
+    function exportCSV(){
+      if(!laps.length) return;
+      // convert to oldest-first for CSV
+      const rows = [['Lap','LapDuration(ms)','LapDuration','Cumulative(ms)','Cumulative','Timestamp']];
+      for(let i=laps.length-1;i>=0;i--){
+        const cum = laps[i].t;
+        const prev = (i-1 >= 0) ? laps[i-1].t : 0;
+        const lapDuration = cum - prev;
+        rows.push([String(laps.length - i), String(Math.round(lapDuration)), formatTime(lapDuration), String(Math.round(cum)), formatTime(cum), laps[i].at]);
+      }
+      const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'stopwatch_laps.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function saveState(){
+      try{
+        localStorage.setItem('stopwatch_state', JSON.stringify({elapsed, laps}));
+      }catch(e){/* ignore couch errors */}
+    }
+
+    // event wiring
+    startPauseBtn.addEventListener('click', ()=>{
+      running ? pause() : start();
+      saveState();
+    });
+    lapBtn.addEventListener('click', ()=>{ recordLap(); });
+    resetBtn.addEventListener('click', ()=>{ if(confirm('Reset timer and clear laps?')) reset(); });
+    exportBtn.addEventListener('click', exportCSV);
+
+    document.getElementById('clearStorage').addEventListener('click', ()=>{
+      if(confirm('Clear saved stopwatch state in this browser?')){
+        localStorage.removeItem('stopwatch_state');
+        reset();
+      }
+    });
+
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.code === 'Space'){
+        e.preventDefault();
+        running ? pause() : start();
+        saveState();
+      }
+      if(e.key.toLowerCase() === 'l'){
+        e.preventDefault();
+        if(!lapBtn.disabled) recordLap();
+      }
+      if(e.key.toLowerCase() === 'r'){
+        e.preventDefault();
+        if(confirm('Reset timer and clear laps?')) reset();
+      }
+    });
+
+    // initialize UI
+    updateDisplay();
+    renderLaps();
+    // if we have a non-zero elapsed time after reload, enable buttons appropriately
+    if(elapsed > 0){
+      resetBtn.disabled = false;
+      lapBtn.disabled = false;
+      exportBtn.disabled = laps.length === 0;
+    }
+
+    // save periodically (every 2s) to persist progress
+    setInterval(()=>{ if(running) saveState(); }, 2000);
+  </script>
+</body>
+</html>
