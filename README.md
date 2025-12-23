@@ -8,6 +8,7 @@ The application allows users to accurately measure time intervals with support f
 📌This project was developed as Task-2 of the Web Development Internship offered by SkillCraft Technologies.
 
 
+
 🚀 Features
 
 -Start, Pause, and Reset stopwatch functionality
@@ -20,6 +21,7 @@ The application allows users to accurately measure time intervals with support f
 -Persistent state using browser Local Storage
 
 
+
 🛠️ Technologies Used
 
 -HTML5 – Structure and layout
@@ -29,13 +31,18 @@ The application allows users to accurately measure time intervals with support f
 -JavaScript (ES6) – Stopwatch logic and interactivity
 
 
+
 ⌨️ Keyboard Shortcuts
 
 Key	  --  Action
 
+
 Space --  Start / Pause
+
 L     --  Record Lap
+
 R     --  Reset Stopwatch
+
 
 
 📌 Learning Outcomes
