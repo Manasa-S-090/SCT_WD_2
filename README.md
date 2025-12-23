@@ -23,7 +23,9 @@ The application allows users to accurately measure time intervals with support f
 🛠️ Technologies Used
 
 -HTML5 – Structure and layout
+
 -CSS3 – Styling and responsive UI
+
 -JavaScript (ES6) – Stopwatch logic and interactivity
 
 
